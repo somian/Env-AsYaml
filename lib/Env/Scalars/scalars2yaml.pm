@@ -7,7 +7,7 @@ use strict;
 use v5.18;
 use utf8;
 use warnings;
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = ();
@@ -28,7 +28,7 @@ our @EXPORT_OK = qw(s2yaml);
                  not /[_A-Z0-9]*PATH$/
         } sort keys %ENV;
 
-        my @items =  map { sprintf( '%s: "%s"' , $_ , $ENV{$_} ) }
+        my @items =  map { sprintf( '%s: %s' , $_ , $ENV{$_} ) }
                         @accepted;
         return \@items;
     }

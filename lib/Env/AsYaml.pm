@@ -1,5 +1,5 @@
 package Env::AsYaml;
-# Last modified: Fri Aug 15 2025 01:46:42 PM -04:00 [EDT]
+# Last modified: Thu Aug 28 2025 12:40:56 PM -04:00 [EDT]
 # First created: Sat Aug 09 2025 05:38:14 PM -04:00 [EDT]
 
 use v5.18;
@@ -7,23 +7,24 @@ use strict;
 use utf8;
 use warnings;
 
-=head1 NAME
+=head1 NAME/ABSTRACT
 
-Env::AsYaml is intended to be a tool for examination of the environment in which the
-user is running programs, starting processes or troubleshooting the system. 
+Env::AsYaml is intended to be a tool for examination of the environment in 
+which the user is running programs, starting processes or for otherwise
+troubleshooting the system. 
 
 =head1 VERSION
 
-Version 0.20
+Version 0.30
 
 =cut
 
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 
 =head1 SYNOPSIS
 
 This module checks the environment it's running in and prints it to STDOUT as
-YAML. Env vars that are lists (such as C<$PATH>) are formatted as lists.
+YAML. Env vars that are lists (such as C<$PATH>) are formatted in YAML as lists.
 
     use Env::AsYaml;   # imports 'showPathLists' and 'showScalars'
 
@@ -34,8 +35,12 @@ use vars qw( @Wanted @Bare );
   BEGIN {
      @Wanted = map { push @Bare=> $_; q%@% .$_ } grep {
                 $_ eq "PERL5LIB"
-             || /[_A-Z0-9]*PATH$/
-             || /^XDG_/ } sort keys %ENV;
+             || $_ eq "PATH"
+             || /^XDG_[A-Z]+_DIRS\z/
+             || ( /^[_A-Z0-9]+PATH\z/ && !/^XDG_.+_PATH\z/ )
+             || /PSModulePath/i   # does not work on cygwin, why?
+                  } sort keys %ENV;
+
       eval "use Env qw/@Wanted/ ;";
   }
   # ---------------------- ### ---------------------- #
@@ -43,15 +48,18 @@ use vars qw( @Wanted @Bare );
 use Env::Paths::2yaml;
 use Env::Scalars::scalars2yaml;
 use YAML::Any;
+use Getopt::Std;
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(showPathLists showScalars);
+use Data::Dump::Color;
 $Data::Dump::Color::INDEX = 0;
 $Data::Dump::Color::COLOR = 'true';
 
 =head1 EXPORTS
 
-showPathLists showScalars
+These subroutines are available to import ("@EXPORT_OK").
+    showPathLists showScalars
 
 =head1 SUBROUTINES/METHODS
 
@@ -64,8 +72,8 @@ Use Env::Paths::2yaml to transmute all env path lists into YAML serialization.
 =cut
 
 sub showPathLists {
-    use Data::Dump::Color;
     use Env::Paths::2yaml qw( ToYaml );
+    my $dd = defined $_[0] ? 'true' : '';
 # It's nasty to hard-code it this way but this stuff in my env is just
 # in the way:
 @Bare = grep { $_ ne 'ORIGINAL_PATH'
@@ -80,11 +88,14 @@ sub showPathLists {
         $accumulator .= qq[\n---\n] . $yaml_segment;
     }
     print $accumulator;
-# Load YAML here, to dump the data in color. This may go away.
+
+# Load YAML here, to dump the data in color if desired.
     @all_docs = Load( $accumulator );
-    print qq[\n];
-#   Dump as perl data, in vivid technicolor. TODO have an option fpr this.
-    dd( @all_docs );
+
+    if ($dd) { #   Dump as perl data, in vivid technicolor.
+        print qq[\n];
+        dd( @all_docs );
+    }
 }
 
 =head2 showScalars
@@ -94,12 +105,14 @@ Print simple scalar strings present in the environment.
 =cut
 
 use Env::Scalars::scalars2yaml qw( s2yaml );
-sub showScalars {  # WEIRD problem that forces me to fully-qualify this subroutine call:
-#   my $simples = &Env::Scalars::scalars2yaml::s2yaml;
+sub showScalars {
     my $simples = s2yaml();
+    my $dd = defined $_[0] ? 'true' : '';
     say qq[\n---];
     say for @$simples;
-    dd( $simples );
+    if ($dd) {
+        dd( $simples );
+    }
 }
 
 __END__
@@ -113,6 +126,10 @@ Sören Andersen, C<< <somian08 at gmail.com> >>
 Please report any bugs or feature requests to C<bug-env-asyaml at rt.cpan.org>, or through
 the web interface at L<https://rt.cpan.org/NoAuth/ReportBug.html?Queue=Env-AsYaml>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
+
+=head1 TESTED-ON
+
+So far, only on Cygwin, Linux and Windows.
 
 =head1 SUPPORT
 

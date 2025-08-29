@@ -6,6 +6,8 @@
 *.o
 *.pm.tdy
 *.bs
+# Vim backup files
+.*.un~
 
 # Devel::Cover
 cover_db/
