@@ -39,5 +39,8 @@ inc/
 # Carton/Carmel
 /local/
 /.carmel/
+
+# Other
+ignore.txt
 # cpanfile.snapshot should generally be ignored for library code, otherwise included
 # cpanfile.snapshot 
